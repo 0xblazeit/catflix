@@ -5,6 +5,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { AmbientPosters } from "@/components/ambient-posters";
 import { Header } from "@/components/header";
+import Footer from "@/components/Footer";
 
 const departureMono = localFont({
   src: "./fonts/DepartureMono-Regular.woff",
@@ -31,6 +32,7 @@ export default function RootLayout({
         <AmbientPosters />
         <Header />
         {children}
+        <Footer />
       </body>
     </html>
   );
