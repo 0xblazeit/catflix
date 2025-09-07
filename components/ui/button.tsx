@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "secondary" | "outline" | "ghost";
+  variant?: "default" | "secondary" | "outline" | "ghost" | "glass";
   size?: "sm" | "md" | "lg" | "icon";
 }
 
@@ -16,6 +16,8 @@ const variantToClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
   outline:
     "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
   ghost: "hover:bg-accent hover:text-accent-foreground",
+  glass:
+    "border border-white/25 bg-white/15 text-white shadow-sm backdrop-blur-md hover:bg-white/25 hover:border-white/30",
 };
 
 const sizeToClasses: Record<NonNullable<ButtonProps["size"]>, string> = {

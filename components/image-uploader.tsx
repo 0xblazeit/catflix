@@ -47,7 +47,8 @@ export function ImageUploader() {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D context unavailable");
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high" as any;
+    // imageSmoothingQuality is widely supported; cast to unknown to avoid TS DOM lib variance
+    (ctx as unknown as { imageSmoothingQuality?: string }).imageSmoothingQuality = "high";
     ctx.drawImage(bitmap, 0, 0, dstW, dstH);
 
     const mimeType = "image/jpeg";
@@ -277,11 +278,12 @@ export function ImageUploader() {
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  variant="outline"
+                  variant="glass"
                   size="sm"
                   onClick={handleRegenerate}
                   disabled={isGenerating || (!lastRequest && !file)}
                   title="Regenerate with previous prompt and image"
+                  className="text-white hover:text-white"
                 >
                   <ArrowCounterClockwise className="h-4 w-4" />
                 </Button>
@@ -321,6 +323,8 @@ export function ImageUploader() {
                 )}
                 <div className="flex justify-end">
                   <Button
+                    variant="glass"
+                    className="text-white hover:text-white"
                     onClick={() => {
                       try {
                         const match = resultUrl.match(/^data:(.*?);base64,/);
