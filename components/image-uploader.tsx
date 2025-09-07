@@ -9,6 +9,29 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ImageUploader() {
+  const MOVIES = React.useMemo(
+    () => [
+      "Titanic",
+      "The Fast and the Furious",
+      "Brokeback Mountain",
+      "Star Wars",
+      "The Terminator",
+      "Mean girls",
+      "The Lord of the Rings",
+      "The Matrix",
+      "The Dark Knight: Batman",
+      "Lion King",
+      "The Godfather",
+      "Scarface",
+      "Toy Story",
+      "Forrest Gump",
+      "The Green Mile",
+      "The Shawshank Redemption",
+      "Final Destination",
+      "The Sixth Sense",
+    ],
+    []
+  );
   const [file, setFile] = React.useState<File | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [prompt, setPrompt] = React.useState<string>("");
@@ -18,6 +41,7 @@ export function ImageUploader() {
   const [lastRequest, setLastRequest] = React.useState<
     { prompt: string; mimeType: string; base64: string } | null
   >(null);
+  const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
   const objectUrl = React.useMemo(() => {
@@ -31,6 +55,14 @@ export function ImageUploader() {
     };
   }, [objectUrl]);
 
+  // Auto-trigger generation once the preview (objectUrl) is ready
+  React.useEffect(() => {
+    if (file && objectUrl && pendingPrompt && !isGenerating) {
+      void handleGenerate(pendingPrompt);
+      setPendingPrompt(null);
+    }
+  }, [file, objectUrl, pendingPrompt, isGenerating]);
+
   const onSelect = (f: File | undefined) => {
     if (!f) return;
     const lowerName = f.name.toLowerCase();
@@ -43,6 +75,12 @@ export function ImageUploader() {
     setError(null);
     setFile(f);
     setResultUrl(null);
+    // Build auto prompt with a random movie and trigger generation
+    const movie = MOVIES[Math.floor(Math.random() * MOVIES.length)];
+    const autoPrompt = `use the cat in the image provided to create a movie poster about the movie, "${movie}" with the provided cat being the focal point. use your creativity to create new and masterful pieces that are award winning quality involving the original movies theme and the cat provided to create a mesmerizing poster about that cat.`;
+    setPrompt(autoPrompt);
+    // Defer generation until objectUrl is ready
+    setPendingPrompt(autoPrompt);
   };
 
   const handleDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
@@ -56,7 +94,7 @@ export function ImageUploader() {
     inputRef.current?.click();
   };
 
-  async function handleGenerate() {
+  async function handleGenerate(overridePrompt?: string) {
     if (!file || !objectUrl) return;
     try {
       setIsGenerating(true);
@@ -72,10 +110,11 @@ export function ImageUploader() {
       const base64 = btoa(binary);
       const mimeType = file.type || (file.name.endsWith(".png") ? "image/png" : "image/jpeg");
 
-      setLastRequest({ prompt, mimeType, base64 });
+      const effectivePrompt = overridePrompt ?? prompt;
+      setLastRequest({ prompt: effectivePrompt, mimeType, base64 });
 
       const form = new FormData();
-      form.append("prompt", prompt);
+      form.append("prompt", effectivePrompt);
       // Rebuild a File from the original to leverage multipart path
       form.append("file", new File([bytes], file.name, { type: mimeType }));
       const res = await fetch("/api/generate", { method: "POST", body: form });
@@ -169,21 +208,25 @@ export function ImageUploader() {
               {error}
             </p>
           )}
-          <div className="mt-3 grid gap-2">
-            <label htmlFor="prompt" className="text-xs font-medium">Prompt</label>
-            <textarea
-              id="prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe how you want to modify the image..."
-              className="min-h-16 w-full rounded-md border bg-background p-2 text-xs"
-            />
-            <div className="flex justify-end">
-              <Button size="sm" onClick={handleGenerate} disabled={!file || isGenerating || !prompt.trim()}>
-                {isGenerating ? "Generating..." : "Generate with Gemini"}
-              </Button>
-            </div>
-          </div>
+          {/**
+           * Manual prompt disabled for now. We auto-generate using a random movie prompt.
+           *
+           * <div className="mt-3 grid gap-2">
+           *   <label htmlFor="prompt" className="text-xs font-medium">Prompt</label>
+           *   <textarea
+           *     id="prompt"
+           *     value={prompt}
+           *     onChange={(e) => setPrompt(e.target.value)}
+           *     placeholder="Describe how you want to modify the image..."
+           *     className="min-h-16 w-full rounded-md border bg-background p-2 text-xs"
+           *   />
+           *   <div className="flex justify-end">
+           *     <Button size="sm" onClick={() => handleGenerate()} disabled={!file || isGenerating || !prompt.trim()}>
+           *       {isGenerating ? "Generating..." : "Generate with Gemini"}
+           *     </Button>
+           *   </div>
+           * </div>
+           */}
         </CardContent>
       </Card>
 
