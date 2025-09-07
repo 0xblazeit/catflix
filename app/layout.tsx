@@ -17,7 +17,7 @@ const departureMono = localFont({
 
 export const metadata: Metadata = {
   title: "Beau Beau AI",
-  description: "Next Gen Movie Studio",
+  description: "Next Gen Image Studio",
 };
 
 export default function RootLayout({
