@@ -239,7 +239,7 @@ export async function POST(req: NextRequest) {
       "The Young Pope"
     ];
     const movie = MOVIES[Math.floor(Math.random() * MOVIES.length)];
-    const moviePrompt = `analyze the image provided for humans, animals and cats specifically or creatures to be the focal point, then use that focal point to create a movie poster about the movie, "${movie}". use your creativity to create new and masterful pieces that are award winning quality involving the original movies theme and the focal point provided to create a mesmerizing poster. Output plain text only.`;
+    const moviePrompt = `analyze the image provided for humans, animals and cats specifically (or creatures in general if others are not found) to be the focal point, then use that focal point to create a movie poster about the movie, "${movie}". use your creativity to create new and masterful pieces that are award winning quality involving the original movies theme and the focal point provided to create a mesmerizing poster. Output plain text only.`;
     const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
 
     // Start poster and scenes in parallel
