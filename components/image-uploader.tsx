@@ -181,7 +181,7 @@ export function ImageUploader() {
 
   return (
     <div className="w-full max-w-5xl space-y-6">
-      <Card className="max-w-xl mx-auto">
+      <Card className="max-w-xl mx-auto glass-card">
         <CardHeader className="p-4 pb-3">
           <CardTitle className="text-lg">Upload image</CardTitle>
           <CardDescription className="text-xs">Drag & drop a PNG or JPEG image here or click to browse.</CardDescription>
@@ -242,7 +242,7 @@ export function ImageUploader() {
       </Card>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <CardTitle>Preview</CardTitle>
             <CardDescription>Shows the last image you dropped.</CardDescription>
@@ -268,7 +268,7 @@ export function ImageUploader() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-1.5">

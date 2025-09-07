@@ -26,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${departureMono.className} antialiased`}>
+        <div className="bg-blobs" />
         <AmbientPosters />
         {children}
       </body>
