@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { UploadSimple, CircleNotch, ArrowCounterClockwise, DownloadSimple } from "@phosphor-icons/react";
+import { UploadSimple, CircleNotch, ArrowCounterClockwise, ArrowClockwise, DownloadSimple, UserSound } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,10 @@ export function ImageUploader() {
   const [resultUrl, setResultUrl] = React.useState<string | null>(null);
   const [resultDescription, setResultDescription] = React.useState<string | null>(null);
   const [sceneUrls, setSceneUrls] = React.useState<string[]>([]);
+  const [audioUrl, setAudioUrl] = React.useState<string | null>(null);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const [isSpeaking, setIsSpeaking] = React.useState<boolean>(false);
+  const [isTalking, setIsTalking] = React.useState<boolean>(false);
   const [elapsedMs, setElapsedMs] = React.useState<number>(0);
   const [lastRequest, setLastRequest] = React.useState<
     { prompt: string; mimeType: string; base64: string } | null
@@ -101,8 +105,52 @@ export function ImageUploader() {
   React.useEffect(() => {
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
-  }, [objectUrl]);
+  }, [objectUrl, audioUrl]);
+
+  const handleSpeak = React.useCallback(async () => {
+    try {
+      if (!resultDescription) return;
+      // If already synthesized and not revoked, re-use and play
+      if (audioUrl && audioRef.current) {
+        audioRef.current.currentTime = 0;
+        await audioRef.current.play().catch(() => undefined);
+        setIsTalking(true);
+        return;
+      }
+      setIsSpeaking(true);
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: resultDescription }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "TTS failed");
+      }
+      const buf = await res.arrayBuffer();
+      const blob = new Blob([buf], { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      setAudioUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+      // Play
+      setTimeout(async () => {
+        if (audioRef.current) {
+          audioRef.current.src = url;
+          await audioRef.current.play().catch(() => undefined);
+          setIsTalking(true);
+        }
+      }, 0);
+    } catch (e) {
+      console.error("Failed to synthesize speech:", e);
+      setError(e instanceof Error ? e.message : "TTS failed");
+    } finally {
+      setIsSpeaking(false);
+    }
+  }, [resultDescription, audioUrl]);
 
   // Simple elapsed timer while generating
   React.useEffect(() => {
@@ -366,7 +414,37 @@ export function ImageUploader() {
                 </div>
                 {resultDescription && (
                   <div className="text-sm text-muted-foreground whitespace-pre-line">
-                    {resultDescription}
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <span>Description</span>
+                      <Button
+                        variant="glass"
+                        size="sm"
+                        className="text-white hover:text-white"
+                        onClick={handleSpeak}
+                        disabled={!resultDescription || isSpeaking}
+                        title="Listen to description"
+                      >
+                        {isSpeaking ? (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                          >
+                            <ArrowClockwise className="h-4 w-4" />
+                          </motion.div>
+                        ) : (
+                          <UserSound className={`h-4 w-4 ${isTalking ? "text-green-400 animate-pulse" : ""}`} />
+                        )}
+                      </Button>
+                    </div>
+                    <div>{resultDescription}</div>
+                    <audio
+                      ref={audioRef}
+                      hidden
+                      onPlay={() => setIsTalking(true)}
+                      onEnded={() => setIsTalking(false)}
+                      onPause={() => setIsTalking(false)}
+                      onError={() => setIsTalking(false)}
+                    />
                   </div>
                 )}
                 {sceneUrls.length > 0 && (
