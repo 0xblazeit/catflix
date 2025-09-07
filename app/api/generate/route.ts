@@ -10,6 +10,25 @@ type JsonBody = {
   base64: string;
 };
 
+// Curated themes to encourage diverse outputs
+const THEMES: string[] = [
+  "psychedelic",
+  "romantic comedy",
+  "sci-fi",
+  "retro",
+  "cartoon",
+  "film noir",
+  "cyberpunk",
+  "fantasy",
+  "anime",
+  "heavy metal",
+  "horror",
+  "western",
+  "medieval",
+  "renaissance",
+  "baroque",
+];
+
 async function readInput(req: NextRequest): Promise<{ prompt: string; mimeType: string; base64: string } | null> {
   const contentType = req.headers.get("content-type") || "";
   try {
@@ -40,7 +59,11 @@ type GeminiPart = GeminiInlineImagePart | GeminiTextPart | Record<string, unknow
 
 async function callGemini(apiKey: string, prompt: string, mimeType: string, base64: string) {
   const ai = new GoogleGenAI({ apiKey });
-  const parts = [{ text: prompt }, { inlineData: { mimeType, data: base64 } }];
+  // Encourage unique outputs by adding a per-request variation token
+  const variationToken = `v:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
+  const finalPrompt = `${prompt}\n\nTheme: ${theme}.\nGenerate a distinct variation. Variation token: ${variationToken}`;
+  const parts = [{ text: finalPrompt }, { inlineData: { mimeType, data: base64 } }];
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-image-preview",
     // The SDK types accept a flexible shape; cast narrowly here to avoid any

@@ -1,6 +1,10 @@
 prompts: 
 use the cat in the image provided to create a movie poster about star wars with the cat being the focal point. use your creativity to create new and masterful pieces that are award winning quality. every request you should think deeply to create new visual masterpieces.
 
+use the cat in the image provided to create a movie poster about broke back mountain with the cat being the focal point. use your creativity to create new and masterful pieces that are award winning quality involving the original movies theme and the cat provided to create a mesmerizing poster about that cat.
+
+use the cat in the image provided to create a movie poster about broke back mountain with the cat being the focal point. use your creativity to create new and masterful pieces that are award winning quality involving the original movies theme and the cat provided to create a mesmerizing poster about that cat. this poster should be designed by an award winning designer and have the following themes: 
+
 curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" \
   -H 'Content-Type: application/json' \
   -H 'X-goog-api-key: ' \

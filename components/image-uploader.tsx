@@ -127,13 +127,13 @@ export function ImageUploader() {
   }
 
   return (
-    <div className="w-full max-w-5xl space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload image</CardTitle>
-          <CardDescription>Drag & drop a PNG or JPEG image here or click to browse.</CardDescription>
+    <div className="w-full max-w-5xl space-y-6">
+      <Card className="max-w-xl mx-auto">
+        <CardHeader className="p-4 pb-3">
+          <CardTitle className="text-lg">Upload image</CardTitle>
+          <CardDescription className="text-xs">Drag & drop a PNG or JPEG image here or click to browse.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0">
           <div
             role="button"
             tabIndex={0}
@@ -145,11 +145,11 @@ export function ImageUploader() {
               e.stopPropagation();
             }}
             onDrop={handleDrop}
-            className="relative flex h-40 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-muted/30 p-6 text-center transition-colors hover:bg-muted/50"
+            className="relative flex h-20 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-muted/30 p-2 text-center transition-colors hover:bg-muted/50"
           >
-            <UploadSimple className="h-8 w-8 text-muted-foreground" />
-            <div className="text-sm text-muted-foreground">Drag & drop a PNG or JPEG image here</div>
-            <div className="text-xs text-muted-foreground">or</div>
+            <UploadSimple className="h-4 w-4 text-muted-foreground" />
+            <div className="text-[10px] text-muted-foreground">Drag & drop a PNG or JPEG image here</div>
+            <div className="text-[8px] text-muted-foreground">or</div>
             <Button onClick={handleBrowse} variant="secondary" size="sm">
               Browse files
             </Button>
@@ -162,21 +162,21 @@ export function ImageUploader() {
             />
           </div>
           {error && (
-            <p className="mt-3 text-sm text-destructive" role="alert">
+            <p className="mt-2 text-xs text-destructive" role="alert">
               {error}
             </p>
           )}
-          <div className="mt-6 grid gap-3">
-            <label htmlFor="prompt" className="text-sm font-medium">Prompt</label>
+          <div className="mt-3 grid gap-2">
+            <label htmlFor="prompt" className="text-xs font-medium">Prompt</label>
             <textarea
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe how you want to modify the image..."
-              className="min-h-24 w-full rounded-md border bg-background p-2 text-sm"
+              className="min-h-16 w-full rounded-md border bg-background p-2 text-xs"
             />
             <div className="flex justify-end">
-              <Button onClick={handleGenerate} disabled={!file || isGenerating || !prompt.trim()}>
+              <Button size="sm" onClick={handleGenerate} disabled={!file || isGenerating || !prompt.trim()}>
                 {isGenerating ? "Generating..." : "Generate with Gemini"}
               </Button>
             </div>
