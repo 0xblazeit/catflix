@@ -17,6 +17,7 @@ export function ImageUploader() {
   const [resultUrl, setResultUrl] = React.useState<string | null>(null);
   const [resultDescription, setResultDescription] = React.useState<string | null>(null);
   const [sceneUrls, setSceneUrls] = React.useState<string[]>([]);
+  const [elapsedMs, setElapsedMs] = React.useState<number>(0);
   const [lastRequest, setLastRequest] = React.useState<
     { prompt: string; mimeType: string; base64: string } | null
   >(null);
@@ -68,6 +69,7 @@ export function ImageUploader() {
   const handleGenerate = React.useCallback(async () => {
     if (!file || !objectUrl) return;
     try {
+      setElapsedMs(0);
       setIsGenerating(true);
       setError(null);
       setResultUrl(null);
@@ -101,6 +103,16 @@ export function ImageUploader() {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [objectUrl]);
+
+  // Simple elapsed timer while generating
+  React.useEffect(() => {
+    if (!isGenerating) return;
+    const startedAt = Date.now();
+    const id = setInterval(() => {
+      setElapsedMs(Date.now() - startedAt);
+    }, 100);
+    return () => clearInterval(id);
+  }, [isGenerating]);
 
   // Auto-trigger generation once the preview (objectUrl) is ready
   React.useEffect(() => {
@@ -299,13 +311,16 @@ export function ImageUploader() {
           </CardHeader>
           <CardContent className="flex-1 min-h-0 overflow-y-auto">
             {isGenerating ? (
-              <div className="w-full flex items-center justify-center py-16">
+              <div className="w-full flex flex-col items-center justify-center py-16">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                 >
                   <CircleNotch className="h-10 w-10 text-muted-foreground" />
                 </motion.div>
+                <div className="mt-3 text-xs text-white/70 tabular-nums" aria-live="polite">
+                  { (elapsedMs / 1000).toFixed(1) }s
+                </div>
               </div>
             ) : resultUrl ? (
               <motion.div
