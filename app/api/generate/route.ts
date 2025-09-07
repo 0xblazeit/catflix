@@ -87,7 +87,7 @@ async function describeImage(
   const describePrompt =
     (userHint?.trim() || "") +
     (userHint ? "\n\n" : "") +
-    "You are a film critic. Based on this movie poster, write a concise 2-3 sentence description summarizing the premise, tone, genre, and distinctive elements. Output plain text only.";
+    "You are a film critic. Based on this movie poster, write a concise 2-3 sentence description summarizing the premise, tone, genre, and distinctive elements. End with a separate line: Overall rating: X out of 10 meows (replace X with an integer from 1-10). Output plain text only.";
   const parts = [
     { inlineData: { mimeType, data: base64 } },
     { text: describePrompt },
