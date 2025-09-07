@@ -7,7 +7,7 @@ export default function Home() {
     <div className="min-h-screen w-full px-6 md:px-10 pt-28 md:pt-32 lg:pt-36 pb-10">
       <div className="max-w-3xl mx-auto text-center">
         <h1 className="text-3xl md:text-5xl font-semibold tracking-tight text-white">Next Gen Image Studio</h1>
-        <p className="mt-3 text-sm md:text-base text-white/80">
+        <p className="mt-3 text-md md:text-2xl text-white/80">
           Become the <span className="underline decoration-2 underline-offset-4 decoration-white/40 text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 via-emerald-400 to-cyan-400 bg-[length:200%_100%] animate-gradient-x">star</span> of any movie
         </p>
         <div className="mt-2 md:mt-4 flex justify-center">
