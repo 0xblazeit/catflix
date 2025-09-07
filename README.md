@@ -1,6 +1,6 @@
 ## Beau Beau AI — Next‑Gen Image Studio
 
-Beau Beau AI turns your uploaded cat photo into a cinematic movie poster, auto-writes a producer‑style description with a playful “meows” rating, and then generates three distinct scene images from that poster. A built‑in TTS button lets you listen to the description.
+Beau Beau AI turns your uploaded cat photo into a cinematic movie poster, auto-writes a producer‑style description with a playful “meows” rating, and then generates three distinct scene images from that poster. A built‑in TTS (text-to-speech) button lets you listen to the description.
 
 ### AI Features
 - Text+Image → Image (Google Gemini `gemini-2.5-flash-image-preview`): generate a poster from the uploaded image and a server‑side prompt (random movie + theme; variation tokens for diversity)
