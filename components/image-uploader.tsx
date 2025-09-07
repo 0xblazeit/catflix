@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { UploadSimple, CircleNotch, ArrowCounterClockwise } from "@phosphor-icons/react";
+import { UploadSimple, CircleNotch, ArrowCounterClockwise, DownloadSimple } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -331,8 +331,38 @@ export function ImageUploader() {
                 className="w-full grid gap-3"
               >
                 <div className="w-full flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={resultUrl} alt="Generated" className="max-h-[512px] max-w-full rounded-md border object-contain" />
+                  <div className="relative inline-block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={resultUrl} alt="Generated" className="max-h-[512px] max-w-full rounded-md border object-contain" />
+                    <button
+                      aria-label="Download poster"
+                      className="absolute bottom-2 right-2 rounded-md border border-white/25 bg-white/15 text-white p-1.5 backdrop-blur-md hover:bg-white/25 hover:border-white/30"
+                      onClick={() => {
+                        try {
+                          const match = resultUrl?.match(/^data:(.*?);base64,/);
+                          const mime = match?.[1] || "image/png";
+                          const ext = mime === "image/jpeg" ? "jpg" : mime.split("/")[1] || "png";
+                          const now = new Date();
+                          const yyyy = now.getFullYear();
+                          const mm = String(now.getMonth() + 1).padStart(2, "0");
+                          const dd = String(now.getDate()).padStart(2, "0");
+                          const hh = String(now.getHours()).padStart(2, "0");
+                          const mi = String(now.getMinutes()).padStart(2, "0");
+                          const ss = String(now.getSeconds()).padStart(2, "0");
+                          const stamp = `${yyyy}-${mm}-${dd}_${hh}-${mi}-${ss}`;
+
+                          const a = document.createElement("a");
+                          a.href = resultUrl!;
+                          a.download = `catflix-poster-${stamp}.${ext}`;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                        } catch {}
+                      }}
+                    >
+                      <DownloadSimple className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 {resultDescription && (
                   <div className="text-sm text-muted-foreground whitespace-pre-line">
@@ -343,8 +373,38 @@ export function ImageUploader() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 sm:[&>div:last-child:nth-child(odd)]:col-span-2">
                     {sceneUrls.slice(0, 3).map((u, i) => (
                       <div key={i} className="w-full flex items-center justify-center">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={u} alt={`Scene ${i + 1}`} className="max-h-[480px] w-full h-auto rounded-md border object-contain" />
+                        <div className="relative inline-block">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={u} alt={`Scene ${i + 1}`} className="max-h-[480px] h-auto rounded-md border object-contain" />
+                          <button
+                            aria-label={`Download scene ${i + 1}`}
+                            className="absolute bottom-2 right-2 rounded-md border border-white/25 bg-white/15 text-white p-1.5 backdrop-blur-md hover:bg-white/25 hover:border-white/30"
+                            onClick={() => {
+                              try {
+                                const match = u.match(/^data:(.*?);base64,/);
+                                const mime = match?.[1] || "image/png";
+                                const ext = mime === "image/jpeg" ? "jpg" : mime.split("/")[1] || "png";
+                                const now = new Date();
+                                const yyyy = now.getFullYear();
+                                const mm = String(now.getMonth() + 1).padStart(2, "0");
+                                const dd = String(now.getDate()).padStart(2, "0");
+                                const hh = String(now.getHours()).padStart(2, "0");
+                                const mi = String(now.getMinutes()).padStart(2, "0");
+                                const ss = String(now.getSeconds()).padStart(2, "0");
+                                const stamp = `${yyyy}-${mm}-${dd}_${hh}-${mi}-${ss}`;
+
+                                const a = document.createElement("a");
+                                a.href = u;
+                                a.download = `catflix-scene-${i + 1}-${stamp}.${ext}`;
+                                document.body.appendChild(a);
+                                a.click();
+                                a.remove();
+                              } catch {}
+                            }}
+                          >
+                            <DownloadSimple className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
