@@ -250,7 +250,13 @@ export function ImageUploader() {
           </CardHeader>
           <CardContent>
             {file && objectUrl ? (
-              <div className="flex flex-col gap-3">
+              <motion.div
+                key={objectUrl}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="flex flex-col gap-3"
+              >
                 <div className="w-full flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -262,7 +268,7 @@ export function ImageUploader() {
                 <div className="text-sm text-muted-foreground">
                   {file.name} ({Math.round(file.size / 1024)} KB)
                 </div>
-              </div>
+              </motion.div>
             ) : (
               <div className="text-sm text-muted-foreground">No image selected.</div>
             )}
@@ -301,7 +307,13 @@ export function ImageUploader() {
                 </motion.div>
               </div>
             ) : resultUrl ? (
-              <div className="w-full grid gap-3">
+              <motion.div
+                key={resultUrl}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="w-full grid gap-3"
+              >
                 <div className="w-full flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={resultUrl} alt="Generated" className="max-h-[512px] max-w-full rounded-md border object-contain" />
@@ -312,11 +324,11 @@ export function ImageUploader() {
                   </div>
                 )}
                 {sceneUrls.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 sm:[&>div:last-child:nth-child(odd)]:col-span-2">
                     {sceneUrls.slice(0, 3).map((u, i) => (
                       <div key={i} className="w-full flex items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={u} alt={`Scene ${i + 1}`} className="max-h-[300px] max-w-full rounded-md border object-contain" />
+                        <img src={u} alt={`Scene ${i + 1}`} className="max-h-[480px] w-full h-auto rounded-md border object-contain" />
                       </div>
                     ))}
                   </div>
@@ -352,7 +364,7 @@ export function ImageUploader() {
                     Download
                   </Button>
                 </div>
-              </div>
+              </motion.div>
             ) : (
               <div className="text-sm text-muted-foreground">No result yet.</div>
             )}
