@@ -153,41 +153,70 @@ export function AmbientPosters({ images }: { images?: string[] }) {
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      {specs.map((p, i) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={`${p.src}-${i}`}
-          src={p.src}
-          alt=""
-          style={{
-            left: `${p.leftPct}%`,
-            top: `${p.topPct}%`,
-            width: `${p.widthPx}px`,
-            opacity: p.opacity,
-            zIndex: p.z,
-            // animation knobs
-            // @ts-expect-error CSS variables
-            "--dx": `${p.dxPx}px`,
-            // @ts-expect-error CSS variables
-            "--dy": `${p.dyPx}px`,
-            // @ts-expect-error CSS variables
-            "--dur": `${p.durationSec}s`,
-            // @ts-expect-error CSS variables
-            "--delay": `${p.delaySec}s`,
-            // @ts-expect-error CSS variables
-            "--ease": p.ease,
-            // @ts-expect-error CSS variables
-            "--dir": p.dir,
-            // @ts-expect-error CSS variables
-            "--rot": `${p.rotDeg}deg`,
-            // @ts-expect-error CSS variables
-            "--scale": p.scale,
-            // @ts-expect-error CSS variables
-            "--scaleDelta": p.scaleDelta,
-          } as React.CSSProperties}
-          className="ambient-poster select-none"
-        />
-      ))}
+      {specs.map((p, i) => {
+        const hue = Math.round(Math.random() * 120) + 20; // 20-140deg
+        const hueDur = (Math.random() * 10 + 10).toFixed(1) + "s"; // 10-20s
+        const hueDelay = (Math.random() * -8).toFixed(1) + "s"; // negative stagger
+        const trailOpacity = Math.max(0.18, p.opacity - 0.2);
+        const trailScale = p.scale * 0.995;
+        const trailDelay = (p.delaySec - p.durationSec * 0.08).toFixed(2) + "s";
+
+        return (
+          <React.Fragment key={`${p.src}-${i}`}>
+            {/* trail */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={p.src}
+              alt=""
+              style={{
+                left: `${p.leftPct}%`,
+                top: `${p.topPct}%`,
+                width: `${p.widthPx}px`,
+                opacity: trailOpacity,
+                zIndex: Math.max(0, p.z - 1),
+                ["--dx" as unknown as string]: `${Math.round(p.dxPx * 0.9)}px`,
+                ["--dy" as unknown as string]: `${Math.round(p.dyPx * 0.9)}px`,
+                ["--dur" as unknown as string]: `${(p.durationSec * 1.05).toFixed(2)}s`,
+                ["--delayTrail" as unknown as string]: trailDelay,
+                ["--ease" as unknown as string]: p.ease,
+                ["--dir" as unknown as string]: p.dir,
+                ["--rot" as unknown as string]: `${(p.rotDeg * 0.9).toFixed(2)}deg`,
+                ["--scale" as unknown as string]: String(trailScale),
+                ["--scaleDelta" as unknown as string]: String(p.scaleDelta),
+                ["--hue" as unknown as string]: `${hue}deg`,
+                ["--hueDur" as unknown as string]: hueDur,
+                ["--hueDelay" as unknown as string]: hueDelay,
+              } as React.CSSProperties}
+              className="ambient-poster-trail select-none"
+            />
+
+            {/* main */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={p.src}
+              alt=""
+              style={{
+                left: `${p.leftPct}%`,
+                top: `${p.topPct}%`,
+                width: `${p.widthPx}px`,
+                opacity: p.opacity,
+                zIndex: p.z,
+                // animation knobs
+                ["--dx" as unknown as string]: `${p.dxPx}px`,
+                ["--dy" as unknown as string]: `${p.dyPx}px`,
+                ["--dur" as unknown as string]: `${p.durationSec}s`,
+                ["--delay" as unknown as string]: `${p.delaySec}s`,
+                ["--ease" as unknown as string]: p.ease,
+                ["--dir" as unknown as string]: p.dir,
+                ["--rot" as unknown as string]: `${p.rotDeg}deg`,
+                ["--scale" as unknown as string]: String(p.scale),
+                ["--scaleDelta" as unknown as string]: String(p.scaleDelta),
+              } as React.CSSProperties}
+              className="ambient-poster select-none"
+            />
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }

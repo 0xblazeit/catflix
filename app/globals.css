@@ -128,9 +128,25 @@
   100% { transform: translate3d(0, 0, 0) rotate(0deg) scale(var(--scale, 1)); }
 }
 
+@keyframes huePulse {
+  0% { filter: grayscale(1) contrast(1.15) brightness(1.05) hue-rotate(0deg) saturate(1.3); }
+  50% { filter: grayscale(1) contrast(1.15) brightness(1.05) hue-rotate(var(--hue, 60deg)) saturate(1.4); }
+  100% { filter: grayscale(1) contrast(1.15) brightness(1.05) hue-rotate(0deg) saturate(1.3); }
+}
+
 .ambient-poster {
   position: absolute;
   will-change: transform;
   animation: posterFloat var(--dur, 18s) var(--ease, ease-in-out) var(--delay, 0s) infinite var(--dir, alternate);
   filter: saturate(1.1);
+}
+
+.ambient-poster-trail {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform, filter, opacity;
+  animation:
+    posterFloat var(--dur, 18s) var(--ease, ease-in-out) var(--delayTrail, 0s) infinite var(--dir, alternate),
+    huePulse var(--hueDur, 14s) linear var(--hueDelay, 0s) infinite alternate;
+  mix-blend-mode: screen;
 }
