@@ -110,7 +110,8 @@ async function generateScenes(
   mimeType: string,
   base64: string,
   moviePrompt: string,
-  theme: string
+  theme: string,
+  desiredCount: number = 3
 ): Promise<string[]> {
   const ai = new GoogleGenAI({ apiKey });
   const shotVariants = [
@@ -140,15 +141,37 @@ async function generateScenes(
   const tokenA = `sceneA:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const tokenB = `sceneB:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const tokenC = `sceneC:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const scenePromises = [
-    oneScene(shotVariants[0], tokenA),
-    oneScene(shotVariants[1], tokenB),
-    oneScene(shotVariants[2], tokenC),
-  ];
-  const sceneResults = await Promise.all(scenePromises);
+  async function oneSceneWithRetry(baseText: string, baseToken: string, retries: number = 2): Promise<string | null> {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const suffix = attempt === 0
+        ? ''
+        : attempt === 1
+          ? ' Use a different camera angle and composition.'
+          : ' Change time-of-day and lighting; avoid poster-like layout.';
+      const token = `${baseToken}-r${attempt}`;
+      const img = await oneScene(baseText + suffix, token);
+      if (img) return img;
+    }
+    return null;
+  }
+
+  const sceneResults = await Promise.all([
+    oneSceneWithRetry(shotVariants[0], tokenA),
+    oneSceneWithRetry(shotVariants[1], tokenB),
+    oneSceneWithRetry(shotVariants[2], tokenC),
+  ]);
   const scenes: string[] = sceneResults
     .filter((s): s is string => Boolean(s))
     .map((s) => `data:${mimeType};base64,${s}`);
+
+  // If we still have fewer than desiredCount, attempt to fill with extra variants
+  let safety = 5;
+  while (scenes.length < desiredCount && safety-- > 0) {
+    const idx = Math.floor(Math.random() * shotVariants.length);
+    const token = `sceneX:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const extra = await oneSceneWithRetry(shotVariants[idx], token, 1);
+    if (extra) scenes.push(`data:${mimeType};base64,${extra}`);
+  }
   return scenes;
 }
 
