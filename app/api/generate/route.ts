@@ -56,12 +56,17 @@ type GeminiInlineImagePart = { inlineData: { mimeType: string; data: string } };
 type GeminiTextPart = { text: string };
 type GeminiPart = GeminiInlineImagePart | GeminiTextPart | Record<string, unknown>;
 
-async function callGemini(apiKey: string, prompt: string, mimeType: string, base64: string) {
+async function callGemini(
+  apiKey: string,
+  prompt: string,
+  mimeType: string,
+  base64: string,
+  theme?: string
+) {
   const ai = new GoogleGenAI({ apiKey });
   // Encourage unique outputs by adding a per-request variation token
   const variationToken = `v:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
-  const finalPrompt = `${prompt}\n\nTheme: ${theme}.\nGenerate a distinct variation. Variation token: ${variationToken}`;
+  const finalPrompt = `${prompt}\n\n${theme ? `Theme: ${theme}.\n` : ''}Generate a distinct variation. Variation token: ${variationToken}`;
   const parts = [{ text: finalPrompt }, { inlineData: { mimeType, data: base64 } }];
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-image-preview",
@@ -92,7 +97,7 @@ async function describeImage(
     { text: describePrompt },
   ];
   const resp = await ai.models.generateContent({
-    model: "gemini-2.5-flash-image-preview",
+    model: "gemini-2.5-flash",
     contents: parts as unknown as Array<{ text?: string; inlineData?: { mimeType: string; data: string } }>,
   });
   const outParts = (resp.candidates?.[0]?.content?.parts ?? []) as GeminiPart[];
@@ -103,7 +108,9 @@ async function describeImage(
 async function generateScenes(
   apiKey: string,
   mimeType: string,
-  base64: string
+  base64: string,
+  moviePrompt: string,
+  theme: string
 ): Promise<string[]> {
   const ai = new GoogleGenAI({ apiKey });
   const shotVariants = [
@@ -114,8 +121,10 @@ async function generateScenes(
 
   async function oneScene(variantText: string, token: string): Promise<string | null> {
     const prompt =
-      `${variantText} Do NOT recreate a poster layout. No logos, no typography, no credits, no borders. ` +
-      `This is an in-universe cinematic still implied by the poster's story. Variation token: ${token}. Return an image response only.`;
+      `${variantText} Using the provided cat image and this movie concept: "${moviePrompt}". ` +
+      `${theme ? `Theme: ${theme}. ` : ''}` +
+      `Do NOT recreate a poster layout. No logos, no typography, no credits, no borders. ` +
+      `This is an in-universe cinematic still implied by the story. Variation token: ${token}. Return an image response only.`;
     const parts = [{ text: prompt }, { inlineData: { mimeType, data: base64 } }];
     const resp = await ai.models.generateContent({
       model: "gemini-2.5-flash-image-preview",
@@ -163,7 +172,7 @@ export async function POST(req: NextRequest) {
     }
 
     // First attempt
-    // Build server-side movie prompt
+    // Build server-side movie prompt (pick a single theme for coherence)
     const MOVIES: string[] = [
       "Titanic",
       "The Fast and the Furious",
@@ -207,14 +216,19 @@ export async function POST(req: NextRequest) {
       "The Young Pope"
     ];
     const movie = MOVIES[Math.floor(Math.random() * MOVIES.length)];
-    const moviePrompt = `use the cat in the image provided to create a movie poster about the movie, "${movie}" with the provided cat being the focal point. use your creativity to create new and masterful pieces that are award winning quality involving the original movies theme and the cat provided to create a mesmerizing poster about that cat. End with a separate line: with a one liner description of the movie thats found in the poster provided, if none found create a one liner description of the movie based on the movie title. Output plain text only.`;
+    const moviePrompt = `use the cat in the image provided to create a movie poster about the movie, "${movie}" with the provided cat being the focal point. use your creativity to create new and masterful pieces that are award winning quality involving the original movies theme and the cat provided to create a mesmerizing poster about that cat. Output plain text only.`;
+    const theme = THEMES[Math.floor(Math.random() * THEMES.length)];
 
-    let { imagePart, textPart } = await callGemini(apiKey, moviePrompt, mimeType, base64);
+    // Start poster and scenes in parallel
+    const posterPromise = callGemini(apiKey, moviePrompt, mimeType, base64, theme);
+    const scenesPromise = generateScenes(apiKey, mimeType, base64, moviePrompt, theme);
+
+    let { imagePart, textPart } = await posterPromise;
 
     // Retry once with a stronger instruction if only text was returned
     if (!imagePart?.inlineData?.data) {
       const retryPrompt = `${moviePrompt}\n\nReturn an image response only. Do not include text.`;
-      const retry = await callGemini(apiKey, retryPrompt, mimeType, base64);
+      const retry = await callGemini(apiKey, retryPrompt, mimeType, base64, theme);
       imagePart = retry.imagePart;
       textPart = retry.textPart || textPart;
     }
@@ -234,7 +248,7 @@ export async function POST(req: NextRequest) {
     let scenes: string[] = [];
     const [descRes, scenesRes] = await Promise.allSettled([
       describeImage(apiKey, outMime, generatedBase64),
-      generateScenes(apiKey, outMime, generatedBase64),
+      scenesPromise,
     ]);
     if (descRes.status === "fulfilled") description = descRes.value; else description = null;
     if (scenesRes.status === "fulfilled") scenes = scenesRes.value; else scenes = [];

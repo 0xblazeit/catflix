@@ -28,6 +28,42 @@ export function ImageUploader() {
     return URL.createObjectURL(file);
   }, [file]);
 
+  async function compressImage(
+    sourceFile: File,
+    maxSize: number = 1024,
+    quality: number = 0.85
+  ): Promise<{ blob: Blob; mimeType: string; name: string; base64: string }> {
+    // Decode image
+    const bitmap = await createImageBitmap(sourceFile);
+    const srcW = bitmap.width;
+    const srcH = bitmap.height;
+    const scale = Math.min(1, maxSize / Math.max(srcW, srcH));
+    const dstW = Math.max(1, Math.round(srcW * scale));
+    const dstH = Math.max(1, Math.round(srcH * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = dstW;
+    canvas.height = dstH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D context unavailable");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high" as any;
+    ctx.drawImage(bitmap, 0, 0, dstW, dstH);
+
+    const mimeType = "image/jpeg";
+    const blob: Blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Failed to encode image"))), mimeType, quality);
+    });
+
+    const arrayBuffer = await blob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = "";
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
+
+    return { blob, mimeType, name: sourceFile.name.replace(/\.[^.]+$/, ".jpg"), base64 };
+  }
+
   const handleGenerate = React.useCallback(async () => {
     if (!file || !objectUrl) return;
     try {
@@ -35,14 +71,7 @@ export function ImageUploader() {
       setError(null);
       setResultUrl(null);
 
-      const arrayBuffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const base64 = btoa(binary);
-      const mimeType = file.type || (file.name.endsWith(".png") ? "image/png" : "image/jpeg");
+      const { blob, mimeType, name, base64 } = await compressImage(file);
 
       const effectivePrompt = ""; // Prompt is now server-side
       setLastRequest({ prompt: effectivePrompt, mimeType, base64 });
@@ -50,7 +79,7 @@ export function ImageUploader() {
       const form = new FormData();
       // No prompt needed; server will decide
       // Rebuild a File from the original to leverage multipart path
-      form.append("file", new File([bytes], file.name, { type: mimeType }));
+      form.append("file", new File([blob], name, { type: mimeType }));
       const res = await fetch("/api/generate", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) {
@@ -115,14 +144,17 @@ export function ImageUploader() {
       if (!req) {
         // Fallback: build request from current file
         if (!file || !objectUrl) return;
-        const arrayBuffer = await file.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        let binary = "";
-        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-        const base64 = btoa(binary);
-        const mimeType = file.type || (file.name.endsWith(".png") ? "image/png" : "image/jpeg");
+        const { blob, mimeType, name, base64 } = await compressImage(file);
         setLastRequest({ prompt: "", mimeType, base64 });
-        return await handleRegenerate();
+        const form2 = new FormData();
+        form2.append("file", new File([blob], name, { type: mimeType }));
+        const res2 = await fetch("/api/generate", { method: "POST", body: form2 });
+        const data2 = await res2.json();
+        if (!res2.ok) throw new Error(data2?.error || "Generation failed");
+        setResultUrl(data2.dataUrl as string);
+        setResultDescription((data2.description as string) || null);
+        setSceneUrls(Array.isArray(data2.scenes) ? (data2.scenes as string[]) : []);
+        return;
       }
 
       setIsGenerating(true);
