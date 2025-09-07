@@ -242,8 +242,9 @@ export function ImageUploader() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <Card className="glass-card">
+      {file ? (
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <Card className="glass-card">
           <CardHeader className="min-h-[120px]">
             <CardTitle>Preview</CardTitle>
             <CardDescription>Shows the last image you dropped.</CardDescription>
@@ -273,9 +274,9 @@ export function ImageUploader() {
               <div className="text-sm text-muted-foreground">No image selected.</div>
             )}
           </CardContent>
-        </Card>
+          </Card>
 
-        <Card className="glass-card flex flex-col max-h-[80vh]">
+          <Card className="glass-card flex flex-col max-h-[80vh]">
         <CardHeader className="min-h-[120px]">
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-1.5">
@@ -369,8 +370,9 @@ export function ImageUploader() {
               <div className="text-sm text-muted-foreground">No result yet.</div>
             )}
           </CardContent>
-        </Card>
-      </div>
+          </Card>
+        </div>
+      ) : null}
     </div>
   );
 }
