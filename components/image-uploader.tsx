@@ -73,11 +73,11 @@ export function ImageUploader() {
 
       setLastRequest({ prompt, mimeType, base64 });
 
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, mimeType, base64 }),
-      });
+      const form = new FormData();
+      form.append("prompt", prompt);
+      // Rebuild a File from the original to leverage multipart path
+      form.append("file", new File([bytes], file.name, { type: mimeType }));
+      const res = await fetch("/api/generate", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data?.error || "Generation failed");
@@ -109,11 +109,11 @@ export function ImageUploader() {
       setIsGenerating(true);
       setError(null);
 
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: req.prompt, mimeType: req.mimeType, base64: req.base64 }),
-      });
+      const form = new FormData();
+      form.append("prompt", req.prompt);
+      const blob = Uint8Array.from(atob(req.base64), (c) => c.charCodeAt(0));
+      form.append("file", new File([blob], "image", { type: req.mimeType }));
+      const res = await fetch("/api/generate", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data?.error || "Generation failed");

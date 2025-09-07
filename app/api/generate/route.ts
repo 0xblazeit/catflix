@@ -4,21 +4,66 @@ import { GoogleGenAI } from "@google/genai";
 
 export const runtime = "nodejs";
 
-type GenerateRequestBody = {
+type JsonBody = {
   prompt: string;
-  mimeType: string; // e.g. "image/png" or "image/jpeg"
-  base64: string; // raw base64, no data URL prefix
+  mimeType: string;
+  base64: string;
 };
+
+async function readInput(req: NextRequest): Promise<{ prompt: string; mimeType: string; base64: string } | null> {
+  const contentType = req.headers.get("content-type") || "";
+  try {
+    if (contentType.includes("application/json")) {
+      const { prompt, mimeType, base64 } = (await req.json()) as JsonBody;
+      if (!prompt || !mimeType || !base64) return null;
+      return { prompt, mimeType, base64 };
+    }
+    if (contentType.includes("multipart/form-data")) {
+      const form = await req.formData();
+      const prompt = String(form.get("prompt") || "");
+      const file = form.get("file");
+      if (!prompt || !(file instanceof Blob)) return null;
+      const mimeType = file.type || "image/png";
+      const buf = Buffer.from(await file.arrayBuffer());
+      const base64 = buf.toString("base64");
+      return { prompt, mimeType, base64 };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+type GeminiInlineImagePart = { inlineData: { mimeType: string; data: string } };
+type GeminiTextPart = { text: string };
+type GeminiPart = GeminiInlineImagePart | GeminiTextPart | Record<string, unknown>;
+
+async function callGemini(apiKey: string, prompt: string, mimeType: string, base64: string) {
+  const ai = new GoogleGenAI({ apiKey });
+  const parts = [{ text: prompt }, { inlineData: { mimeType, data: base64 } }];
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-image-preview",
+    // The SDK types accept a flexible shape; cast narrowly here to avoid any
+    contents: parts as unknown as Array<{ text?: string; inlineData?: { mimeType: string; data: string } }>,
+  });
+  const partsOut = (response.candidates?.[0]?.content?.parts ?? []) as GeminiPart[];
+  const imagePart = partsOut.find((p): p is GeminiInlineImagePart =>
+    typeof (p as GeminiInlineImagePart).inlineData?.data === "string"
+  );
+  const textPart = (partsOut.find((p): p is GeminiTextPart => typeof (p as GeminiTextPart).text === "string") as GeminiTextPart | undefined)?.text;
+  return { imagePart, textPart };
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, mimeType, base64 } = (await req.json()) as GenerateRequestBody;
-    if (!prompt || !mimeType || !base64) {
-      return new Response(
-        JSON.stringify({ error: "Missing prompt, mimeType or base64" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+    const parsed = await readInput(req);
+    if (!parsed) {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
+    const { prompt, mimeType, base64 } = parsed;
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -28,32 +73,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    // First attempt
+    let { imagePart, textPart } = await callGemini(apiKey, prompt, mimeType, base64);
 
-    // Build prompt parts: text + inline image data (base64)
-    const parts = [
-      { text: prompt },
-      { inlineData: { mimeType, data: base64 } },
-    ];
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image-preview",
-      contents: parts as any,
-    });
-
-    // Extract first image part
-    const partsOut = response.candidates?.[0]?.content?.parts ?? [];
-    const imagePart = partsOut.find((p: any) => p?.inlineData?.data);
+    // Retry once with a stronger instruction if only text was returned
     if (!imagePart?.inlineData?.data) {
-      // If model returned text, include it for debugging purposes
-      const textPart = partsOut.find((p: any) => p?.text)?.text;
+      const retryPrompt = `${prompt}\n\nReturn an image response only. Do not include text.`;
+      const retry = await callGemini(apiKey, retryPrompt, mimeType, base64);
+      imagePart = retry.imagePart;
+      textPart = retry.textPart || textPart;
+    }
+
+    if (!imagePart?.inlineData?.data) {
       return new Response(
         JSON.stringify({ error: "No image returned", details: textPart ?? null }),
         { status: 502, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // The API returns raw base64 without data URL. Wrap it for the client.
     const outMime = imagePart.inlineData.mimeType || "image/png";
     const dataUrl = `data:${outMime};base64,${imagePart.inlineData.data}`;
 
@@ -61,9 +98,9 @@ export async function POST(req: NextRequest) {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return new Response(
-      JSON.stringify({ error: "Failed to generate image", details: err?.message ?? String(err) }),
+      JSON.stringify({ error: "Failed to generate image", details: err instanceof Error ? err.message : String(err) }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
