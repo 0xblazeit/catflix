@@ -414,8 +414,8 @@ export function ImageUploader() {
                 </div>
                 {resultDescription && (
                   <div className="text-sm text-muted-foreground whitespace-pre-line">
-                    <div className="flex items-center justify-between gap-3 mb-1">
-                      <span>Description</span>
+                    <div className="flex items-center justify-between gap-3 mb-1 mt-5">
+                      <span className="text-white text-lg font-bold">Description</span>
                       <Button
                         variant="glass"
                         size="sm"
