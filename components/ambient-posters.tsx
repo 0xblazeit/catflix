@@ -152,7 +152,7 @@ export function AmbientPosters({ images }: { images?: string[] }) {
   if (specs.length === 0) return null;
 
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       {specs.map((p, i) => {
         const hue = Math.round(Math.random() * 120) + 20; // 20-140deg
         const hueDur = (Math.random() * 10 + 10).toFixed(1) + "s"; // 10-20s
