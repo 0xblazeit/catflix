@@ -154,12 +154,30 @@ export function AmbientPosters({ images }: { images?: string[] }) {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       {specs.map((p, i) => {
+        // Deterministic per-image RNG so values are stable across re-renders
+        function createDeterministicRandom(seedInput: string) {
+          let seed = 0;
+          for (let idx = 0; idx < seedInput.length; idx++) {
+            seed = (seed * 31 + seedInput.charCodeAt(idx)) | 0;
+          }
+          let state = seed ^ 0x9E3779B9;
+          return function next() {
+            state |= 0;
+            state = (state + 0x6D2B79F5) | 0;
+            let t = Math.imul(state ^ (state >>> 15), 1 | state);
+            t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+        const rand = createDeterministicRandom(`${p.src}:${i}`);
         const hue = Math.round(Math.random() * 120) + 20; // 20-140deg
         const hueDur = (Math.random() * 10 + 10).toFixed(1) + "s"; // 10-20s
         const hueDelay = (Math.random() * -8).toFixed(1) + "s"; // negative stagger
         const trailOpacity = Math.max(0.18, p.opacity - 0.2);
         const trailScale = p.scale * 0.995;
         const trailDelay = (p.delaySec - p.durationSec * 0.08).toFixed(2) + "s";
+        const appearDelay = (rand() * 1.7).toFixed(2) + "s"; // 0.00s - 1.20s
+        const appearDur = (0.5 + rand() * 0.9).toFixed(2) + "s"; // 0.50s - 1.40s
 
         return (
           <React.Fragment key={`${p.src}-${i}`}>
@@ -186,6 +204,8 @@ export function AmbientPosters({ images }: { images?: string[] }) {
                 ["--hue" as unknown as string]: `${hue}deg`,
                 ["--hueDur" as unknown as string]: hueDur,
                 ["--hueDelay" as unknown as string]: hueDelay,
+                ["--appearDelay" as unknown as string]: appearDelay,
+                ["--appearDur" as unknown as string]: appearDur,
               } as React.CSSProperties}
               className="ambient-poster-trail select-none"
             />
@@ -211,6 +231,8 @@ export function AmbientPosters({ images }: { images?: string[] }) {
                 ["--rot" as unknown as string]: `${p.rotDeg}deg`,
                 ["--scale" as unknown as string]: String(p.scale),
                 ["--scaleDelta" as unknown as string]: String(p.scaleDelta),
+                ["--appearDelay" as unknown as string]: appearDelay,
+                ["--appearDur" as unknown as string]: appearDur,
               } as React.CSSProperties}
               className="ambient-poster select-none"
             />
