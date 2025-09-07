@@ -100,6 +100,49 @@ async function describeImage(
   return text ?? null;
 }
 
+async function generateScenes(
+  apiKey: string,
+  mimeType: string,
+  base64: string
+): Promise<string[]> {
+  const ai = new GoogleGenAI({ apiKey });
+  const shotVariants = [
+    "Scene A (battle/action): an action-driven moment with dynamic motion and energy; different camera angle and location than the poster; dramatic lighting; widescreen 16:9.",
+    "Scene B (romance/heart): an intimate, character-driven moment that conveys tenderness or connection; different time-of-day and setting than the poster; cinematic composition; widescreen 16:9.",
+    "Scene C (suspense/mystery): a tense or mysterious situation with strong atmosphere; different environment than the poster; evocative lighting; widescreen 16:9.",
+  ];
+
+  async function oneScene(variantText: string, token: string): Promise<string | null> {
+    const prompt =
+      `${variantText} Do NOT recreate a poster layout. No logos, no typography, no credits, no borders. ` +
+      `This is an in-universe cinematic still implied by the poster's story. Variation token: ${token}. Return an image response only.`;
+    const parts = [{ text: prompt }, { inlineData: { mimeType, data: base64 } }];
+    const resp = await ai.models.generateContent({
+      model: "gemini-2.5-flash-image-preview",
+      contents: parts as unknown as Array<{ text?: string; inlineData?: { mimeType: string; data: string } }>,
+    });
+    const outParts = (resp.candidates?.[0]?.content?.parts ?? []) as GeminiPart[];
+    const image = (outParts.find((p): p is GeminiInlineImagePart =>
+      typeof (p as GeminiInlineImagePart).inlineData?.data === "string"
+    ) as GeminiInlineImagePart | undefined)?.inlineData?.data;
+    return image ?? null;
+  }
+
+  const tokenA = `sceneA:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const tokenB = `sceneB:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const tokenC = `sceneC:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const scenePromises = [
+    oneScene(shotVariants[0], tokenA),
+    oneScene(shotVariants[1], tokenB),
+    oneScene(shotVariants[2], tokenC),
+  ];
+  const sceneResults = await Promise.all(scenePromises);
+  const scenes: string[] = sceneResults
+    .filter((s): s is string => Boolean(s))
+    .map((s) => `data:${mimeType};base64,${s}`);
+  return scenes;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const parsed = await readInput(req);
@@ -188,13 +231,15 @@ export async function POST(req: NextRequest) {
     const dataUrl = `data:${outMime};base64,${generatedBase64}`;
 
     let description: string | null = null;
-    try {
-      description = await describeImage(apiKey, outMime, generatedBase64);
-    } catch {
-      description = null;
-    }
+    let scenes: string[] = [];
+    const [descRes, scenesRes] = await Promise.allSettled([
+      describeImage(apiKey, outMime, generatedBase64),
+      generateScenes(apiKey, outMime, generatedBase64),
+    ]);
+    if (descRes.status === "fulfilled") description = descRes.value; else description = null;
+    if (scenesRes.status === "fulfilled") scenes = scenesRes.value; else scenes = [];
 
-    return new Response(JSON.stringify({ dataUrl, description }), {
+    return new Response(JSON.stringify({ dataUrl, description, scenes }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

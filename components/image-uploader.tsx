@@ -16,6 +16,7 @@ export function ImageUploader() {
   const [isGenerating, setIsGenerating] = React.useState<boolean>(false);
   const [resultUrl, setResultUrl] = React.useState<string | null>(null);
   const [resultDescription, setResultDescription] = React.useState<string | null>(null);
+  const [sceneUrls, setSceneUrls] = React.useState<string[]>([]);
   const [lastRequest, setLastRequest] = React.useState<
     { prompt: string; mimeType: string; base64: string } | null
   >(null);
@@ -57,6 +58,7 @@ export function ImageUploader() {
       }
       setResultUrl(data.dataUrl as string);
       setResultDescription((data.description as string) || null);
+      setSceneUrls(Array.isArray(data.scenes) ? (data.scenes as string[]) : []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
@@ -137,6 +139,7 @@ export function ImageUploader() {
       }
       setResultUrl(data.dataUrl as string);
       setResultDescription((data.description as string) || null);
+      setSceneUrls(Array.isArray(data.scenes) ? (data.scenes as string[]) : []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
@@ -272,6 +275,16 @@ export function ImageUploader() {
                 {resultDescription && (
                   <div className="text-sm text-muted-foreground whitespace-pre-line">
                     {resultDescription}
+                  </div>
+                )}
+                {sceneUrls.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {sceneUrls.slice(0, 3).map((u, i) => (
+                      <div key={i} className="w-full flex items-center justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={u} alt={`Scene ${i + 1}`} className="max-h-[300px] max-w-full rounded-md border object-contain" />
+                      </div>
+                    ))}
                   </div>
                 )}
                 <div className="flex justify-end">
