@@ -56,36 +56,25 @@ export function AmbientPosters({ images }: { images?: string[] }) {
     const count = available.length;
     if (count === 0) return out;
 
-    // Grid-based jittered placement to reduce clustering/overlap
-    const totalCells = Math.max(count, Math.ceil(count * 3));
-    const cols = Math.max(4, Math.ceil(Math.sqrt(totalCells)));
-    const rows = Math.max(4, Math.ceil(totalCells / cols));
+    // Poisson-like placement (rejection sampling) to minimize clustering across full viewport
+    const placed: Array<{ x: number; y: number }> = [];
+    const minDist = 18; // percent of viewport; larger -> less clustering
+    const attemptsPerItem = 200;
 
-    const leftMargin = 3; // percent
-    const topMargin = 5; // percent
-    const gridW = 94; // percent available horizontally
-    const gridH = 88; // percent available vertically
-    const cellW = gridW / cols;
-    const cellH = gridH / rows;
-
-    // Build list of cell indices and sample without replacement
-    const allCells: number[] = Array.from({ length: cols * rows }, (_v, i) => i);
-    // Fisher–Yates shuffle
-    for (let i = allCells.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [allCells[i], allCells[j]] = [allCells[j], allCells[i]];
+    function place(): { x: number; y: number } {
+      for (let a = 0; a < attemptsPerItem; a++) {
+        const x = rng(4, 96);
+        const y = rng(6, 94);
+        const ok = placed.every((p) => Math.hypot(x - p.x, y - p.y) >= minDist);
+        if (ok) return { x, y };
+      }
+      // fallback: accept even if too close
+      return { x: rng(4, 96), y: rng(6, 94) };
     }
-    const picked = allCells.slice(0, count);
 
-    available.forEach((src, idx) => {
-      const cell = picked[idx % picked.length];
-      const c = cell % cols;
-      const r = Math.floor(cell / cols);
-      // jitter within each cell but stay away from edges to further reduce overlap
-      const jitterX = cellW * (0.25 + 0.5 * Math.random());
-      const jitterY = cellH * (0.25 + 0.5 * Math.random());
-      const leftPct = leftMargin + c * cellW + jitterX;
-      const topPct = topMargin + r * cellH + jitterY;
+    available.forEach((src) => {
+      const pos = place();
+      placed.push(pos);
 
       // Movement profile tiers for more variation
       const tier = Math.random();
@@ -140,8 +129,8 @@ export function AmbientPosters({ images }: { images?: string[] }) {
 
       out.push({
         src,
-        leftPct,
-        topPct,
+        leftPct: pos.x,
+        topPct: pos.y,
         widthPx: Math.round(rng(100, 160)),
         dxPx,
         dyPx,
