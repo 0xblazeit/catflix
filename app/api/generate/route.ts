@@ -86,7 +86,7 @@ async function describeImage(
   const describePrompt =
     (userHint?.trim() || "") +
     (userHint ? "\n\n" : "") +
-    "You are an award-winning film producer. Based on this movie poster, craft a captivating 2-3 sentence pitch with a memorable hook that compels audiences to see the film. Highlight the premise, tone, and distinctive elements; avoid spoilers; use vivid, evocative language. End with a separate line: Overall rating: X out of 69 meows (replace X with an integer from 1-69, 69 meows is the highest rating possible). Output plain text only.";
+    "You are an award-winning film producer. Based on this movie poster, craft a captivating 2-3 sentence pitch with a memorable hook that compels audiences to see the film. Highlight the premise, tone, and distinctive elements; avoid spoilers; use vivid, evocative language.";
   const parts = [
     { inlineData: { mimeType, data: base64 } },
     { text: describePrompt },
@@ -127,6 +127,7 @@ export async function POST(req: NextRequest) {
       "Brokeback Mountain",
       "Star Wars",
       "The Terminator",
+      "the longest yard",
       "Mean girls",
       "The Lord of the Rings",
       "The Matrix",
@@ -151,10 +152,19 @@ export async function POST(req: NextRequest) {
       "Rush Hour: jackie chan and chris tucker",
       "Straight Outta Compton",
       "Get Rich or Die Tryin",
-      "The terminator"
+      "Guardians of the Galaxy",
+      "Saving Private Ryan",
+      "Transformers: The Last Knight",
+      "The Hangover",
+      "dont mess with the zohan",
+      "fight club",
+      "you got served",
+      "the grudge",
+      "mission: impossible",
+      "The Young Pope"
     ];
     const movie = MOVIES[Math.floor(Math.random() * MOVIES.length)];
-    const moviePrompt = `use the cat in the image provided to create a movie poster about the movie, "${movie}" with the provided cat being the focal point. use your creativity to create new and masterful pieces that are award winning quality involving the original movies theme and the cat provided to create a mesmerizing poster about that cat.`;
+    const moviePrompt = `use the cat in the image provided to create a movie poster about the movie, "${movie}" with the provided cat being the focal point. use your creativity to create new and masterful pieces that are award winning quality involving the original movies theme and the cat provided to create a mesmerizing poster about that cat. End with a separate line: with a one liner description of the movie thats found in the poster provided, if none found create a one liner description of the movie based on the movie title. Output plain text only.`;
 
     let { imagePart, textPart } = await callGemini(apiKey, moviePrompt, mimeType, base64);
 
