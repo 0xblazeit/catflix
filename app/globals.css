@@ -120,3 +120,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Ambient posters subtle float */
+@keyframes posterFloat {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(var(--scale, 1)); }
+  50% { transform: translate3d(var(--dx, 10px), var(--dy, -8px), 0) rotate(var(--rot, 1deg)) scale(calc(var(--scale, 1) * var(--scaleDelta, 1.025))); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg) scale(var(--scale, 1)); }
+}
+
+.ambient-poster {
+  position: absolute;
+  will-change: transform;
+  animation: posterFloat var(--dur, 18s) var(--ease, ease-in-out) var(--delay, 0s) infinite var(--dir, alternate);
+  filter: saturate(1.1);
+}
