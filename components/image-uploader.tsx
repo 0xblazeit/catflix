@@ -193,7 +193,7 @@ export function ImageUploader() {
   }
 
   return (
-    <div className="w-full max-w-5xl space-y-6">
+    <div className="w-full max-w-5xl space-y-6 pt-14">
       <Card className="max-w-xl mx-auto glass-card">
         <CardHeader className="p-4 pb-3">
           <CardTitle className="text-lg">Upload image</CardTitle>

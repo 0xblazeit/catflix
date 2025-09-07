@@ -28,7 +28,7 @@ export function Header({ className }: { className?: string }) {
           priority
         />
         <span className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-wide md:tracking-wider text-white/90">
-          Catflix
+          Beau Beau Ai
         </span>
       </div>
     </header>
