@@ -244,7 +244,7 @@ export function ImageUploader() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Card className="glass-card">
-          <CardHeader>
+          <CardHeader className="min-h-[120px]">
             <CardTitle>Preview</CardTitle>
             <CardDescription>Shows the last image you dropped.</CardDescription>
           </CardHeader>
@@ -276,11 +276,11 @@ export function ImageUploader() {
         </Card>
 
         <Card className="glass-card flex flex-col max-h-[80vh]">
-          <CardHeader>
+        <CardHeader className="min-h-[120px]">
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-1.5">
                 <CardTitle>Result</CardTitle>
-                <CardDescription>Nano Banana (gemini-2.5-flash-image-preview).</CardDescription>
+                <CardDescription>Powered by Nano Banana (gemini-2.5-flash-image-preview).</CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <Button
