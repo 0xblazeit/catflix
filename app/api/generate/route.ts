@@ -77,6 +77,30 @@ async function callGemini(apiKey: string, prompt: string, mimeType: string, base
   return { imagePart, textPart };
 }
 
+async function describeImage(
+  apiKey: string,
+  mimeType: string,
+  base64: string,
+  userHint?: string
+): Promise<string | null> {
+  const ai = new GoogleGenAI({ apiKey });
+  const describePrompt =
+    (userHint?.trim() || "") +
+    (userHint ? "\n\n" : "") +
+    "You are a film critic. Based on this movie poster, write a concise 2-3 sentence description summarizing the premise, tone, genre, and distinctive elements. Output plain text only.";
+  const parts = [
+    { inlineData: { mimeType, data: base64 } },
+    { text: describePrompt },
+  ];
+  const resp = await ai.models.generateContent({
+    model: "gemini-2.5-flash-image-preview",
+    contents: parts as unknown as Array<{ text?: string; inlineData?: { mimeType: string; data: string } }>,
+  });
+  const outParts = (resp.candidates?.[0]?.content?.parts ?? []) as GeminiPart[];
+  const text = (outParts.find((p): p is GeminiTextPart => typeof (p as GeminiTextPart).text === "string") as GeminiTextPart | undefined)?.text;
+  return text ?? null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const parsed = await readInput(req);
@@ -115,9 +139,17 @@ export async function POST(req: NextRequest) {
     }
 
     const outMime = imagePart.inlineData.mimeType || "image/png";
-    const dataUrl = `data:${outMime};base64,${imagePart.inlineData.data}`;
+    const generatedBase64 = imagePart.inlineData.data;
+    const dataUrl = `data:${outMime};base64,${generatedBase64}`;
 
-    return new Response(JSON.stringify({ dataUrl }), {
+    let description: string | null = null;
+    try {
+      description = await describeImage(apiKey, outMime, generatedBase64);
+    } catch {
+      description = null;
+    }
+
+    return new Response(JSON.stringify({ dataUrl, description }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

@@ -14,6 +14,7 @@ export function ImageUploader() {
   const [prompt, setPrompt] = React.useState<string>("");
   const [isGenerating, setIsGenerating] = React.useState<boolean>(false);
   const [resultUrl, setResultUrl] = React.useState<string | null>(null);
+  const [resultDescription, setResultDescription] = React.useState<string | null>(null);
   const [lastRequest, setLastRequest] = React.useState<
     { prompt: string; mimeType: string; base64: string } | null
   >(null);
@@ -83,6 +84,7 @@ export function ImageUploader() {
         throw new Error(data?.error || "Generation failed");
       }
       setResultUrl(data.dataUrl as string);
+      setResultDescription((data.description as string) || null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
@@ -119,6 +121,7 @@ export function ImageUploader() {
         throw new Error(data?.error || "Generation failed");
       }
       setResultUrl(data.dataUrl as string);
+      setResultDescription((data.description as string) || null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
@@ -247,6 +250,11 @@ export function ImageUploader() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={resultUrl} alt="Generated" className="max-h-[512px] max-w-full rounded-md border object-contain" />
                 </div>
+                {resultDescription && (
+                  <div className="text-sm text-muted-foreground whitespace-pre-line">
+                    {resultDescription}
+                  </div>
+                )}
                 <div className="flex justify-end">
                   <Button
                     onClick={() => {
