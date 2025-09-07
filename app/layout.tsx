@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 
 import "./globals.css";
 import { AmbientPosters } from "@/components/ambient-posters";
+import { Header } from "@/components/header";
 
 const departureMono = localFont({
   src: "./fonts/DepartureMono-Regular.woff",
@@ -28,6 +29,7 @@ export default function RootLayout({
       <body className={`${departureMono.className} antialiased`}>
         <div className="bg-blobs" />
         <AmbientPosters />
+        <Header />
         {children}
       </body>
     </html>
