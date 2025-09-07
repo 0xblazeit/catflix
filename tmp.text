@@ -1,0 +1,18 @@
+prompts: 
+use the cat in the image provided to create a movie poster about star wars with the cat being the focal point. use your creativity to create new and masterful pieces that are award winning quality. every request you should think deeply to create new visual masterpieces.
+
+curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" \
+  -H 'Content-Type: application/json' \
+  -H 'X-goog-api-key: ' \
+  -X POST \
+  -d '{
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "Explain how AI works in a few words"
+          }
+        ]
+      }
+    ]
+  }'

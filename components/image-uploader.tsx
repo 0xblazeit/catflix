@@ -2,7 +2,8 @@
 
 import * as React from "react";
 
-import { UploadSimple } from "@phosphor-icons/react";
+import { UploadSimple, CircleNotch, ArrowCounterClockwise } from "@phosphor-icons/react";
+import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export function ImageUploader() {
   const [file, setFile] = React.useState<File | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [prompt, setPrompt] = React.useState<string>("");
+  const [isGenerating, setIsGenerating] = React.useState<boolean>(false);
+  const [resultUrl, setResultUrl] = React.useState<string | null>(null);
+  const [lastRequest, setLastRequest] = React.useState<
+    { prompt: string; mimeType: string; base64: string } | null
+  >(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
   const objectUrl = React.useMemo(() => {
@@ -34,6 +41,7 @@ export function ImageUploader() {
     }
     setError(null);
     setFile(f);
+    setResultUrl(null);
   };
 
   const handleDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
@@ -46,6 +54,77 @@ export function ImageUploader() {
   const handleBrowse = () => {
     inputRef.current?.click();
   };
+
+  async function handleGenerate() {
+    if (!file || !objectUrl) return;
+    try {
+      setIsGenerating(true);
+      setError(null);
+      setResultUrl(null);
+
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary);
+      const mimeType = file.type || (file.name.endsWith(".png") ? "image/png" : "image/jpeg");
+
+      setLastRequest({ prompt, mimeType, base64 });
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, mimeType, base64 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Generation failed");
+      }
+      setResultUrl(data.dataUrl as string);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Generation failed");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  async function handleRegenerate() {
+    try {
+      const req = lastRequest;
+      if (!req) {
+        // Fallback: build request from current file
+        if (!file || !objectUrl) return;
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+        const base64 = btoa(binary);
+        const mimeType = file.type || (file.name.endsWith(".png") ? "image/png" : "image/jpeg");
+        setLastRequest({ prompt, mimeType, base64 });
+        return await handleRegenerate();
+      }
+
+      setIsGenerating(true);
+      setError(null);
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: req.prompt, mimeType: req.mimeType, base64: req.base64 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Generation failed");
+      }
+      setResultUrl(data.dataUrl as string);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Generation failed");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   return (
     <div className="w-full max-w-2xl space-y-8">
@@ -87,6 +166,21 @@ export function ImageUploader() {
               {error}
             </p>
           )}
+          <div className="mt-6 grid gap-3">
+            <label htmlFor="prompt" className="text-sm font-medium">Prompt</label>
+            <textarea
+              id="prompt"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe how you want to modify the image..."
+              className="min-h-24 w-full rounded-md border bg-background p-2 text-sm"
+            />
+            <div className="flex justify-end">
+              <Button onClick={handleGenerate} disabled={!file || isGenerating || !prompt.trim()}>
+                {isGenerating ? "Generating..." : "Generate with Gemini"}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -112,6 +206,78 @@ export function ImageUploader() {
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">No image selected.</div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Result</CardTitle>
+              <CardDescription>Output generated by Gemini.</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRegenerate}
+                disabled={isGenerating || (!lastRequest && !file)}
+                title="Regenerate with previous prompt and image"
+              >
+                <ArrowCounterClockwise className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isGenerating ? (
+            <div className="w-full flex items-center justify-center py-16">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              >
+                <CircleNotch className="h-10 w-10 text-muted-foreground" />
+              </motion.div>
+            </div>
+          ) : resultUrl ? (
+            <div className="w-full grid gap-3">
+              <div className="w-full flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={resultUrl} alt="Generated" className="max-h-[512px] max-w-full rounded-md border object-contain" />
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => {
+                    try {
+                      const match = resultUrl.match(/^data:(.*?);base64,/);
+                      const mime = match?.[1] || "image/png";
+                      const ext = mime === "image/jpeg" ? "jpg" : mime.split("/")[1] || "png";
+
+                      const now = new Date();
+                      const yyyy = now.getFullYear();
+                      const mm = String(now.getMonth() + 1).padStart(2, "0");
+                      const dd = String(now.getDate()).padStart(2, "0");
+                      const hh = String(now.getHours()).padStart(2, "0");
+                      const mi = String(now.getMinutes()).padStart(2, "0");
+                      const ss = String(now.getSeconds()).padStart(2, "0");
+                      const stamp = `${yyyy}-${mm}-${dd}_${hh}-${mi}-${ss}`;
+
+                      const a = document.createElement("a");
+                      a.href = resultUrl;
+                      a.download = `catflix-${stamp}.${ext}`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                    } catch {}
+                  }}
+                >
+                  Download
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">No result yet.</div>
           )}
         </CardContent>
       </Card>
