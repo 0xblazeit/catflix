@@ -159,6 +159,16 @@
   mix-blend-mode: screen;
 }
 
+@keyframes gradient-x {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient-x {
+  animation: gradient-x 6s ease-in-out infinite;
+}
+
 /* Soft gray blob gradient background */
 @keyframes bgDrift {
   0% { transform: translate3d(0,0,0) scale(1); }
