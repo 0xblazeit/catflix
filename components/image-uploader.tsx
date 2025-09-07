@@ -21,22 +21,6 @@ export function ImageUploader() {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [isSpeaking, setIsSpeaking] = React.useState<boolean>(false);
   const [isTalking, setIsTalking] = React.useState<boolean>(false);
-
-  // Reset audio state when a new description arrives
-  React.useEffect(() => {
-    if (!resultDescription) return;
-    try {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-      }
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-    } catch {}
-    setAudioUrl(null);
-    setIsTalking(false);
-  }, [resultDescription, audioUrl]);
   const [elapsedMs, setElapsedMs] = React.useState<number>(0);
   const [lastRequest, setLastRequest] = React.useState<
     { prompt: string; mimeType: string; base64: string } | null
@@ -89,17 +73,6 @@ export function ImageUploader() {
   const handleGenerate = React.useCallback(async () => {
     if (!file || !objectUrl) return;
     try {
-      // Clear any prior TTS state for a fresh result
-      try {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.src = "";
-        }
-        if (audioUrl) URL.revokeObjectURL(audioUrl);
-      } catch {}
-      setAudioUrl(null);
-      setIsTalking(false);
-
       setElapsedMs(0);
       setIsGenerating(true);
       setError(null);
@@ -127,7 +100,7 @@ export function ImageUploader() {
     } finally {
       setIsGenerating(false);
     }
-  }, [file, objectUrl, audioUrl]);
+  }, [file, objectUrl]);
 
   React.useEffect(() => {
     return () => {
@@ -228,17 +201,6 @@ export function ImageUploader() {
 
   async function handleRegenerate() {
     try {
-      // Clear any prior TTS state for a fresh result
-      try {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.src = "";
-        }
-        if (audioUrl) URL.revokeObjectURL(audioUrl);
-      } catch {}
-      setAudioUrl(null);
-      setIsTalking(false);
-
       const req = lastRequest;
       if (!req) {
         // Fallback: build request from current file
