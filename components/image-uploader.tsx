@@ -9,39 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ImageUploader() {
-  const MOVIES = React.useMemo(
-    () => [
-      "Titanic",
-      "The Fast and the Furious",
-      "Brokeback Mountain",
-      "Star Wars",
-      "The Terminator",
-      "Mean girls",
-      "The Lord of the Rings",
-      "The Matrix",
-      "The Dark Knight: Batman",
-      "Lion King",
-      "The Godfather",
-      "Scarface",
-      "Toy Story",
-      "Forrest Gump",
-      "The Green Mile",
-      "The Shawshank Redemption",
-      "Final Destination",
-      "The Sixth Sense",
-    ],
-    []
-  );
   const [file, setFile] = React.useState<File | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [prompt, setPrompt] = React.useState<string>("");
+  // Prompt disabled (server-side); keep for future UX toggles but unused
+  // const [prompt, setPrompt] = React.useState<string>("");
   const [isGenerating, setIsGenerating] = React.useState<boolean>(false);
   const [resultUrl, setResultUrl] = React.useState<string | null>(null);
   const [resultDescription, setResultDescription] = React.useState<string | null>(null);
   const [lastRequest, setLastRequest] = React.useState<
     { prompt: string; mimeType: string; base64: string } | null
   >(null);
-  const [pendingPrompt, setPendingPrompt] = React.useState<string | null>(null);
+  const [shouldAutoGenerate, setShouldAutoGenerate] = React.useState<boolean>(false);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
   const objectUrl = React.useMemo(() => {
@@ -49,52 +27,7 @@ export function ImageUploader() {
     return URL.createObjectURL(file);
   }, [file]);
 
-  React.useEffect(() => {
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [objectUrl]);
-
-  // Auto-trigger generation once the preview (objectUrl) is ready
-  React.useEffect(() => {
-    if (file && objectUrl && pendingPrompt && !isGenerating) {
-      void handleGenerate(pendingPrompt);
-      setPendingPrompt(null);
-    }
-  }, [file, objectUrl, pendingPrompt, isGenerating]);
-
-  const onSelect = (f: File | undefined) => {
-    if (!f) return;
-    const lowerName = f.name.toLowerCase();
-    const isPngOrJpeg = lowerName.endsWith(".png") || lowerName.endsWith(".jpeg");
-    if (!isPngOrJpeg) {
-      setError("Please select a PNG or JPEG image.");
-      setFile(null);
-      return;
-    }
-    setError(null);
-    setFile(f);
-    setResultUrl(null);
-    // Build auto prompt with a random movie and trigger generation
-    const movie = MOVIES[Math.floor(Math.random() * MOVIES.length)];
-    const autoPrompt = `use the cat in the image provided to create a movie poster about the movie, "${movie}" with the provided cat being the focal point. use your creativity to create new and masterful pieces that are award winning quality involving the original movies theme and the cat provided to create a mesmerizing poster about that cat.`;
-    setPrompt(autoPrompt);
-    // Defer generation until objectUrl is ready
-    setPendingPrompt(autoPrompt);
-  };
-
-  const handleDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const f = e.dataTransfer.files?.[0];
-    onSelect(f);
-  };
-
-  const handleBrowse = () => {
-    inputRef.current?.click();
-  };
-
-  async function handleGenerate(overridePrompt?: string) {
+  const handleGenerate = React.useCallback(async () => {
     if (!file || !objectUrl) return;
     try {
       setIsGenerating(true);
@@ -110,11 +43,11 @@ export function ImageUploader() {
       const base64 = btoa(binary);
       const mimeType = file.type || (file.name.endsWith(".png") ? "image/png" : "image/jpeg");
 
-      const effectivePrompt = overridePrompt ?? prompt;
+      const effectivePrompt = ""; // Prompt is now server-side
       setLastRequest({ prompt: effectivePrompt, mimeType, base64 });
 
       const form = new FormData();
-      form.append("prompt", effectivePrompt);
+      // No prompt needed; server will decide
       // Rebuild a File from the original to leverage multipart path
       form.append("file", new File([bytes], file.name, { type: mimeType }));
       const res = await fetch("/api/generate", { method: "POST", body: form });
@@ -129,7 +62,50 @@ export function ImageUploader() {
     } finally {
       setIsGenerating(false);
     }
-  }
+  }, [file, objectUrl]);
+
+  React.useEffect(() => {
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [objectUrl]);
+
+  // Auto-trigger generation once the preview (objectUrl) is ready
+  React.useEffect(() => {
+    if (file && objectUrl && shouldAutoGenerate && !isGenerating) {
+      void handleGenerate();
+      setShouldAutoGenerate(false);
+    }
+  }, [file, objectUrl, shouldAutoGenerate, isGenerating, handleGenerate]);
+
+  const onSelect = (f: File | undefined) => {
+    if (!f) return;
+    const lowerName = f.name.toLowerCase();
+    const isPngOrJpeg = lowerName.endsWith(".png") || lowerName.endsWith(".jpeg");
+    if (!isPngOrJpeg) {
+      setError("Please select a PNG or JPEG image.");
+      setFile(null);
+      return;
+    }
+    setError(null);
+    setFile(f);
+    setResultUrl(null);
+    // Server selects random movie and constructs prompt; mark for auto-generate
+    setShouldAutoGenerate(true);
+  };
+
+  const handleDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const f = e.dataTransfer.files?.[0];
+    onSelect(f);
+  };
+
+  const handleBrowse = () => {
+    inputRef.current?.click();
+  };
+
+  // removed duplicate handleGenerate definition
 
   async function handleRegenerate() {
     try {
@@ -143,7 +119,7 @@ export function ImageUploader() {
         for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
         const base64 = btoa(binary);
         const mimeType = file.type || (file.name.endsWith(".png") ? "image/png" : "image/jpeg");
-        setLastRequest({ prompt, mimeType, base64 });
+        setLastRequest({ prompt: "", mimeType, base64 });
         return await handleRegenerate();
       }
 
@@ -151,7 +127,7 @@ export function ImageUploader() {
       setError(null);
 
       const form = new FormData();
-      form.append("prompt", req.prompt);
+      // No prompt; server handles it
       const blob = Uint8Array.from(atob(req.base64), (c) => c.charCodeAt(0));
       form.append("file", new File([blob], "image", { type: req.mimeType }));
       const res = await fetch("/api/generate", { method: "POST", body: form });
