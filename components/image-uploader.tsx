@@ -415,10 +415,6 @@ export function ImageUploader() {
                     className="text-white hover:text-white"
                     onClick={() => {
                       try {
-                        const match = resultUrl.match(/^data:(.*?);base64,/);
-                        const mime = match?.[1] || "image/png";
-                        const ext = mime === "image/jpeg" ? "jpg" : mime.split("/")[1] || "png";
-
                         const now = new Date();
                         const yyyy = now.getFullYear();
                         const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -428,16 +424,33 @@ export function ImageUploader() {
                         const ss = String(now.getSeconds()).padStart(2, "0");
                         const stamp = `${yyyy}-${mm}-${dd}_${hh}-${mi}-${ss}`;
 
-                        const a = document.createElement("a");
-                        a.href = resultUrl;
-                        a.download = `catflix-${stamp}.${ext}`;
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
+                        if (resultUrl) {
+                          const matchPoster = resultUrl.match(/^data:(.*?);base64,/);
+                          const mimePoster = matchPoster?.[1] || "image/png";
+                          const extPoster = mimePoster === "image/jpeg" ? "jpg" : mimePoster.split("/")[1] || "png";
+                          const aPoster = document.createElement("a");
+                          aPoster.href = resultUrl;
+                          aPoster.download = `catflix-poster-${stamp}.${extPoster}`;
+                          document.body.appendChild(aPoster);
+                          aPoster.click();
+                          aPoster.remove();
+                        }
+
+                        sceneUrls.slice(0, 3).forEach((u, i) => {
+                          const match = u.match(/^data:(.*?);base64,/);
+                          const mime = match?.[1] || "image/png";
+                          const ext = mime === "image/jpeg" ? "jpg" : mime.split("/")[1] || "png";
+                          const a = document.createElement("a");
+                          a.href = u;
+                          a.download = `catflix-scene-${i + 1}-${stamp}.${ext}`;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                        });
                       } catch {}
                     }}
                   >
-                    Download
+                    Download all
                   </Button>
                 </div>
               </motion.div>
