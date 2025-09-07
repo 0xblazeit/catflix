@@ -91,7 +91,7 @@ async function describeImage(
   const describePrompt =
     (userHint?.trim() || "") +
     (userHint ? "\n\n" : "") +
-    "You are an award-winning film producer. Based on this movie poster, craft a captivating 2-3 sentence pitch with a memorable hook that compels audiences to see the film. Highlight the premise, tone, and distinctive elements; avoid spoilers; use vivid, evocative language.";
+    "You are an award-winning film producer. Based on this movie poster, craft a captivating 2-3 sentence pitch with a memorable hook that compels audiences to see the film. Highlight the premise, tone, and distinctive elements; avoid spoilers; use vivid, evocative language. then give me a few words as the tagline for the movie as the last line.";
   const parts = [
     { inlineData: { mimeType, data: base64 } },
     { text: describePrompt },
